@@ -9,14 +9,12 @@
         @font-face {
             font-family: 'Chicago';
             src: local('Chicago'), local('Geneva'), url('https://db.onlinewebfonts.com/t/2cba833c8736a323719b0d12e697330a.woff2') format('woff2'); 
-            /* Fallback to a pixel-ish web font if Chicago isn't local. 
-               Note: Linking to external font for demonstration, but works with system sans-serif too. */
         }
 
         :root {
             --sys-black: #000000;
             --sys-white: #ffffff;
-            --sys-blue: #000080; /* Deep blue for title bars */
+            --sys-blue: #000080;
         }
 
         body {
@@ -25,7 +23,7 @@
             overflow: hidden;
             font-family: 'Chicago', 'Geneva', sans-serif;
             font-size: 12px;
-            /* The Classic 50% Gray Dither Pattern */
+            /* Classic 50% Gray Dither */
             background-color: var(--sys-white);
             background-image: linear-gradient(45deg, #000 25%, transparent 25%, transparent 75%, #000 75%, #000), 
                               linear-gradient(45deg, #000 25%, transparent 25%, transparent 75%, #000 75%, #000);
@@ -66,7 +64,7 @@
             padding-right: 15px;
         }
 
-        /* --- Desktop Icons (Trash) --- */
+        /* --- Desktop Icons --- */
         .desktop-icon {
             position: absolute;
             bottom: 20px;
@@ -99,12 +97,13 @@
             position: absolute;
             top: 60px;
             left: 40px;
-            width: 400px;
+            width: 500px; /* Slightly wider for more apps */
             background-color: var(--sys-white);
             border: 1px solid var(--sys-black);
             box-shadow: 2px 2px 0px var(--sys-black);
             display: flex;
             flex-direction: column;
+            max-height: 80vh; /* Don't go off screen */
         }
 
         .title-bar {
@@ -123,6 +122,7 @@
                     var(--sys-white) 2px
                 );
             cursor: grab;
+            flex-shrink: 0;
         }
 
         .title-bar:active {
@@ -172,6 +172,7 @@
             justify-content: space-between;
             padding: 0 5px;
             font-size: 10px;
+            flex-shrink: 0;
         }
 
         .window-content {
@@ -179,7 +180,7 @@
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
             gap: 20px;
-            min-height: 200px;
+            overflow-y: auto; /* Scroll if too many apps */
         }
 
         /* --- App Icons inside Window --- */
@@ -198,7 +199,7 @@
             margin-bottom: 5px;
         }
         
-        /* 1-bit filter for SVGs to ensure they look crisp and B&W */
+        /* 1-bit filter for SVGs */
         svg {
             shape-rendering: crispEdges;
         }
@@ -224,62 +225,13 @@
             <div class="zoom-box"><div class="zoom-inner"></div></div>
         </div>
         <div class="window-info-bar">
-            <span>4 items</span>
-            <span>20 MB in disk</span>
+            <span id="itemCount">0 items</span>
+            <span id="diskSpace">20 MB in disk</span>
             <span>5 MB available</span>
         </div>
-        <div class="window-content">
-            
-            <!-- App 1: States -->
-            <div class="window-icon" onclick="launchApp('https://bfugitt.github.io/states/')">
-                <!-- Custom SVG Map Icon -->
-                <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <rect x="2" y="2" width="28" height="28" fill="white" stroke="black" stroke-width="2"/>
-                    <path d="M6 10 L12 8 L18 12 L26 6 L26 26 L18 22 L12 24 L6 20 Z" fill="none" stroke="black" stroke-width="2"/>
-                    <rect x="0" y="0" width="32" height="32" fill="transparent" />
-                </svg>
-                <span class="icon-label">States</span>
-            </div>
-
-            <!-- App 2: World -->
-            <div class="window-icon" onclick="launchApp('https://bfugitt.github.io/world/')">
-                <!-- Custom SVG Globe Icon -->
-                <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <circle cx="16" cy="16" r="14" fill="white" stroke="black" stroke-width="2"/>
-                    <ellipse cx="16" cy="16" rx="14" ry="4" stroke="black" stroke-width="2"/>
-                    <line x1="16" y1="2" x2="16" y2="30" stroke="black" stroke-width="2"/>
-                    <line x1="2" y1="16" x2="30" y2="16" stroke="black" stroke-width="2"/>
-                </svg>
-                <span class="icon-label">World</span>
-            </div>
-
-            <!-- App 3: Vocab -->
-            <div class="window-icon" onclick="launchApp('https://bfugitt.github.io/macvocab/')">
-                <!-- Custom SVG Book Icon -->
-                <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <rect x="6" y="4" width="20" height="24" fill="white" stroke="black" stroke-width="2"/>
-                    <line x1="10" y1="4" x2="10" y2="28" stroke="black" stroke-width="2"/>
-                    <line x1="14" y1="8" x2="22" y2="8" stroke="black" stroke-width="2"/>
-                    <line x1="14" y1="12" x2="22" y2="12" stroke="black" stroke-width="2"/>
-                    <line x1="14" y1="16" x2="22" y2="16" stroke="black" stroke-width="2"/>
-                    <text x="13" y="24" font-family="monospace" font-size="8" fill="black">A</text>
-                </svg>
-                <span class="icon-label">Vocab</span>
-            </div>
-
-            <!-- App 4: LearnIt -->
-            <div class="window-icon" onclick="launchApp('https://bfugitt.github.io/learnit/?mod=4-tci-3.json')">
-                <!-- Custom SVG Happy Mac / Computer Icon -->
-                <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <rect x="4" y="4" width="24" height="20" rx="2" fill="white" stroke="black" stroke-width="2"/>
-                    <line x1="4" y1="20" x2="28" y2="20" stroke="black" stroke-width="2"/>
-                    <rect x="8" y="8" width="16" height="8" fill="black"/>
-                    <line x1="10" y1="26" x2="22" y2="26" stroke="black" stroke-width="2"/>
-                </svg>
-                <span class="icon-label">LearnIt</span>
-            </div>
-
-        </div>
+        
+        <!-- Apps are injected here by JS -->
+        <div class="window-content" id="appContainer"></div>
     </div>
 
     <!-- Trash Can -->
@@ -295,16 +247,134 @@
     </div>
 
     <script>
-        // --- App Launcher Logic ---
-        function launchApp(url) {
-            // Configuration for the pop-up window to hide chrome
-            // Note: Modern browsers may force some UI elements (address bar) to remain visible for security.
-            const features = 'width=1024,height=768,toolbar=no,location=no,status=no,menubar=no,scrollbars=yes,resizable=yes,centerscreen=yes';
+        // =================================================================
+        // USER CONFIGURATION SECTION
+        // =================================================================
+        
+        // Add your apps here. 
+        // Icon options: 'map', 'globe', 'book', 'mac', 'music', 'logic', 'keyboard', 'guitar', 'default'
+        const myApps = [
+            { name: "States",    url: "https://bfugitt.github.io/states/",           icon: "map" },
+            { name: "World",     url: "https://bfugitt.github.io/world/",            icon: "globe" },
+            { name: "Vocab",     url: "https://bfugitt.github.io/macvocab/",         icon: "book" },
+            { name: "LearnIt",   url: "https://bfugitt.github.io/learnit/?mod=4-tci-3.json", icon: "mac" },
+            { name: "WebSynth",  url: "https://bfugitt.github.io/web-synth",         icon: "music" },
+            { name: "Logic",     url: "https://bfugitt.github.io/logic/",            icon: "logic" },
+            { name: "MacType",   url: "https://bfugitt.github.io/mactype/",          icon: "keyboard" },
+            { name: "BibleType", url: "https://bfugitt.github.io/bibletype/",        icon: "book" }, // Using book for now
+            { name: "Songer",    url: "https://bfugitt.github.io/songer/",           icon: "music" },
+            { name: "Guitar",    url: "https://bfugitt.github.io/guitar/",           icon: "guitar" }
+        ];
+
+
+        // =================================================================
+        // ICON LIBRARY (SVG Definitions)
+        // =================================================================
+        const iconLibrary = {
+            'default': `
+                <rect x="4" y="4" width="24" height="24" fill="white" stroke="black" stroke-width="2"/>
+                <line x1="4" y1="8" x2="28" y2="8" stroke="black" stroke-width="2"/>
+            `,
+            'map': `
+                <rect x="2" y="2" width="28" height="28" fill="white" stroke="black" stroke-width="2"/>
+                <path d="M6 10 L12 8 L18 12 L26 6 L26 26 L18 22 L12 24 L6 20 Z" fill="none" stroke="black" stroke-width="2"/>
+            `,
+            'globe': `
+                <circle cx="16" cy="16" r="14" fill="white" stroke="black" stroke-width="2"/>
+                <ellipse cx="16" cy="16" rx="14" ry="4" stroke="black" stroke-width="2"/>
+                <line x1="16" y1="2" x2="16" y2="30" stroke="black" stroke-width="2"/>
+                <line x1="2" y1="16" x2="30" y2="16" stroke="black" stroke-width="2"/>
+            `,
+            'book': `
+                <rect x="6" y="4" width="20" height="24" fill="white" stroke="black" stroke-width="2"/>
+                <line x1="10" y1="4" x2="10" y2="28" stroke="black" stroke-width="2"/>
+                <line x1="14" y1="8" x2="22" y2="8" stroke="black" stroke-width="2"/>
+                <line x1="14" y1="12" x2="22" y2="12" stroke="black" stroke-width="2"/>
+                <line x1="14" y1="16" x2="22" y2="16" stroke="black" stroke-width="2"/>
+                <text x="13" y="24" font-family="monospace" font-size="8" fill="black">A</text>
+            `,
+            'mac': `
+                <rect x="4" y="4" width="24" height="20" rx="2" fill="white" stroke="black" stroke-width="2"/>
+                <line x1="4" y1="20" x2="28" y2="20" stroke="black" stroke-width="2"/>
+                <rect x="8" y="8" width="16" height="8" fill="black"/>
+                <line x1="10" y1="26" x2="22" y2="26" stroke="black" stroke-width="2"/>
+            `,
+            'music': `
+                <rect x="4" y="4" width="24" height="24" fill="white" stroke="black" stroke-width="2"/>
+                <line x1="4" y1="14" x2="28" y2="14" stroke="black" stroke-width="2"/>
+                <rect x="6" y="14" width="4" height="10" fill="black"/>
+                <rect x="14" y="14" width="4" height="10" fill="black"/>
+                <rect x="22" y="14" width="4" height="10" fill="black"/>
+                <rect x="6" y="8" width="22" height="4" fill="black"/>
+            `,
+            'logic': `
+                <rect x="4" y="4" width="24" height="24" fill="white" stroke="black" stroke-width="2"/>
+                <rect x="8" y="10" width="4" height="4" fill="black"/>
+                <rect x="8" y="18" width="4" height="4" fill="black"/>
+                <rect x="20" y="14" width="4" height="4" fill="black"/>
+                <line x1="12" y1="12" x2="16" y2="12" stroke="black" stroke-width="2"/>
+                <line x1="12" y1="20" x2="16" y2="20" stroke="black" stroke-width="2"/>
+                <line x1="16" y1="12" x2="16" y2="20" stroke="black" stroke-width="2"/>
+                <line x1="16" y1="16" x2="20" y2="16" stroke="black" stroke-width="2"/>
+            `,
+            'keyboard': `
+                <rect x="2" y="8" width="28" height="16" fill="white" stroke="black" stroke-width="2"/>
+                <rect x="4" y="10" width="4" height="4" fill="black"/>
+                <rect x="10" y="10" width="4" height="4" fill="black"/>
+                <rect x="16" y="10" width="4" height="4" fill="black"/>
+                <rect x="22" y="10" width="4" height="4" fill="black"/>
+                <rect x="6" y="16" width="18" height="4" fill="black"/>
+            `,
+            'guitar': `
+                <path d="M12 4 L20 4 L22 10 L24 24 L20 28 L12 28 L8 24 L10 10 Z" fill="white" stroke="black" stroke-width="2"/>
+                <circle cx="16" cy="20" r="3" fill="black"/>
+                <line x1="16" y1="4" x2="16" y2="28" stroke="black" stroke-width="1"/>
+            `
+        };
+
+        // =================================================================
+        // RENDER LOGIC
+        // =================================================================
+        
+        const container = document.getElementById('appContainer');
+        const countLabel = document.getElementById('itemCount');
+        const diskLabel = document.getElementById('diskSpace');
+
+        function renderApps() {
+            container.innerHTML = ''; // Clear existing
             
+            myApps.forEach(app => {
+                const iconSvg = iconLibrary[app.icon] || iconLibrary['default'];
+                
+                const iconDiv = document.createElement('div');
+                iconDiv.className = 'window-icon';
+                iconDiv.onclick = () => launchApp(app.url);
+                
+                iconDiv.innerHTML = `
+                    <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        ${iconSvg}
+                        <rect x="0" y="0" width="32" height="32" fill="transparent" />
+                    </svg>
+                    <span class="icon-label">${app.name}</span>
+                `;
+                
+                container.appendChild(iconDiv);
+            });
+
+            // Update stats
+            countLabel.textContent = `${myApps.length} items`;
+            diskLabel.textContent = `${myApps.length * 5} MB in disk`;
+        }
+
+        function launchApp(url) {
+            const features = 'width=1024,height=768,toolbar=no,location=no,status=no,menubar=no,scrollbars=yes,resizable=yes,centerscreen=yes';
             window.open(url, '_blank', features);
         }
 
-        // --- Draggable Window Logic ---
+        // Initialize
+        renderApps();
+
+        // --- Draggable Window Logic (Same as before) ---
         const windowEl = document.getElementById('mainWindow');
         const titleBar = document.getElementById('dragHandle');
 
@@ -349,7 +419,6 @@
         }
 
         function setTranslate(xPos, yPos, el) {
-            // Use transform for smooth movement, preserving the original absolute positioning
             el.style.transform = "translate3d(" + xPos + "px, " + yPos + "px, 0)";
         }
     </script>
