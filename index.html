@@ -49,12 +49,16 @@
             z-index: 1000;
         }
 
-        .menu-item {
+        .menu-title {
             padding: 0 10px;
+            height: 100%;
+            display: flex;
+            align-items: center;
             cursor: default;
+            position: relative; /* For positioning dropdown */
         }
 
-        .menu-item:hover {
+        .menu-title:hover, .menu-title.active {
             background-color: var(--sys-black);
             color: var(--sys-white);
         }
@@ -62,6 +66,49 @@
         .apple-logo {
             font-size: 14px;
             padding-right: 15px;
+            padding-left: 10px; /* Adjust for balance */
+        }
+
+        /* --- Dropdown Menus --- */
+        .dropdown-menu {
+            position: absolute;
+            top: 20px; /* Height of menubar */
+            left: 0;
+            background-color: var(--sys-white);
+            border: 1px solid var(--sys-black);
+            box-shadow: 2px 2px 0px var(--sys-black);
+            min-width: 150px;
+            display: none;
+            flex-direction: column;
+            padding: 2px 0;
+            color: var(--sys-black); /* Reset color in case parent is inverted */
+            z-index: 2000;
+        }
+
+        .dropdown-menu.visible {
+            display: flex;
+        }
+
+        .dropdown-item {
+            padding: 3px 15px;
+            cursor: default;
+            white-space: nowrap;
+        }
+
+        .dropdown-item:hover {
+            background-color: var(--sys-black);
+            color: var(--sys-white);
+        }
+
+        .dropdown-separator {
+            height: 1px;
+            background-color: var(--sys-black); /* Dotted line effect */
+            background-image: linear-gradient(to right, var(--sys-black) 50%, transparent 50%);
+            background-size: 4px 1px;
+            background-repeat: repeat-x;
+            margin: 3px 0;
+            border: none;
+            width: 100%;
         }
 
         /* --- Desktop Icons --- */
@@ -97,13 +144,13 @@
             position: absolute;
             top: 60px;
             left: 40px;
-            width: 500px; /* Slightly wider for more apps */
+            width: 500px;
             background-color: var(--sys-white);
             border: 1px solid var(--sys-black);
             box-shadow: 2px 2px 0px var(--sys-black);
             display: flex;
             flex-direction: column;
-            max-height: 80vh; /* Don't go off screen */
+            max-height: 80vh;
         }
 
         .title-bar {
@@ -180,7 +227,7 @@
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
             gap: 20px;
-            overflow-y: auto; /* Scroll if too many apps */
+            overflow-y: auto;
         }
 
         /* --- App Icons inside Window --- */
@@ -199,7 +246,6 @@
             margin-bottom: 5px;
         }
         
-        /* 1-bit filter for SVGs */
         svg {
             shape-rendering: crispEdges;
         }
@@ -208,14 +254,8 @@
 </head>
 <body>
 
-    <!-- Menu Bar -->
-    <div id="menubar">
-        <div class="menu-item apple-logo"></div>
-        <div class="menu-item">File</div>
-        <div class="menu-item">Edit</div>
-        <div class="menu-item">View</div>
-        <div class="menu-item">Special</div>
-    </div>
+    <!-- Menu Bar Container (Populated by JS) -->
+    <div id="menubar"></div>
 
     <!-- Main Window -->
     <div id="mainWindow" class="window">
@@ -248,11 +288,13 @@
 
     <script>
         // =================================================================
-        // USER CONFIGURATION SECTION
+        // 1. APP CONFIGURATION
         // =================================================================
+        // Add your apps here.
+        // Available Icons: 
+        // 'map', 'globe', 'book', 'mac', 'music', 'logic', 'keyboard', 
+        // 'guitar', 'calculator', 'flask', 'paint', 'scroll', 'column', 'default'
         
-        // Add your apps here. 
-        // Icon options: 'map', 'globe', 'book', 'mac', 'music', 'logic', 'keyboard', 'guitar', 'default'
         const myApps = [
             { name: "States",    url: "https://bfugitt.github.io/states/",           icon: "map" },
             { name: "World",     url: "https://bfugitt.github.io/world/",            icon: "globe" },
@@ -261,87 +303,61 @@
             { name: "WebSynth",  url: "https://bfugitt.github.io/web-synth",         icon: "music" },
             { name: "Logic",     url: "https://bfugitt.github.io/logic/",            icon: "logic" },
             { name: "MacType",   url: "https://bfugitt.github.io/mactype/",          icon: "keyboard" },
-            { name: "BibleType", url: "https://bfugitt.github.io/bibletype/",        icon: "book" }, // Using book for now
+            { name: "BibleType", url: "https://bfugitt.github.io/bibletype/",        icon: "book" },
             { name: "Songer",    url: "https://bfugitt.github.io/songer/",           icon: "music" },
-            { name: "Guitar",    url: "https://bfugitt.github.io/guitar/",           icon: "guitar" }
+            { name: "Guitar",    url: "https://bfugitt.github.io/guitar/",           icon: "guitar" },
+            { name: "MacLatin",  url: "https://bfugitt.github.io/maclatin/",         icon: "column" }
         ];
 
+        // =================================================================
+        // 2. MENU CONFIGURATION
+        // =================================================================
+        // Edit these lists to change what appears in the top menu bar.
+        // Use "---" to create a separator line in the dropdown.
+        
+        const menuConfig = {
+            "": ["About System 6", "---", "Control Panel", "Chooser"],
+            "File": ["New Folder", "Open", "Print", "Close", "---", "Quit"],
+            "Edit": ["Undo", "---", "Cut", "Copy", "Paste", "Clear"],
+            "View": ["By Icon", "By Small Icon", "By Name", "By Date"],
+            "Special": ["Clean Up Window", "Empty Trash", "Erase Disk", "---", "Restart", "Shutdown"],
+            "Help": ["Help Center", "Keyboard Shortcuts"]
+        };
+
 
         // =================================================================
-        // ICON LIBRARY (SVG Definitions)
+        // 3. ICON LIBRARY (SVG Definitions)
         // =================================================================
         const iconLibrary = {
-            'default': `
-                <rect x="4" y="4" width="24" height="24" fill="white" stroke="black" stroke-width="2"/>
-                <line x1="4" y1="8" x2="28" y2="8" stroke="black" stroke-width="2"/>
-            `,
-            'map': `
-                <rect x="2" y="2" width="28" height="28" fill="white" stroke="black" stroke-width="2"/>
-                <path d="M6 10 L12 8 L18 12 L26 6 L26 26 L18 22 L12 24 L6 20 Z" fill="none" stroke="black" stroke-width="2"/>
-            `,
-            'globe': `
-                <circle cx="16" cy="16" r="14" fill="white" stroke="black" stroke-width="2"/>
-                <ellipse cx="16" cy="16" rx="14" ry="4" stroke="black" stroke-width="2"/>
-                <line x1="16" y1="2" x2="16" y2="30" stroke="black" stroke-width="2"/>
-                <line x1="2" y1="16" x2="30" y2="16" stroke="black" stroke-width="2"/>
-            `,
-            'book': `
-                <rect x="6" y="4" width="20" height="24" fill="white" stroke="black" stroke-width="2"/>
-                <line x1="10" y1="4" x2="10" y2="28" stroke="black" stroke-width="2"/>
-                <line x1="14" y1="8" x2="22" y2="8" stroke="black" stroke-width="2"/>
-                <line x1="14" y1="12" x2="22" y2="12" stroke="black" stroke-width="2"/>
-                <line x1="14" y1="16" x2="22" y2="16" stroke="black" stroke-width="2"/>
-                <text x="13" y="24" font-family="monospace" font-size="8" fill="black">A</text>
-            `,
-            'mac': `
-                <rect x="4" y="4" width="24" height="20" rx="2" fill="white" stroke="black" stroke-width="2"/>
-                <line x1="4" y1="20" x2="28" y2="20" stroke="black" stroke-width="2"/>
-                <rect x="8" y="8" width="16" height="8" fill="black"/>
-                <line x1="10" y1="26" x2="22" y2="26" stroke="black" stroke-width="2"/>
-            `,
-            'music': `
-                <rect x="4" y="4" width="24" height="24" fill="white" stroke="black" stroke-width="2"/>
-                <line x1="4" y1="14" x2="28" y2="14" stroke="black" stroke-width="2"/>
-                <rect x="6" y="14" width="4" height="10" fill="black"/>
-                <rect x="14" y="14" width="4" height="10" fill="black"/>
-                <rect x="22" y="14" width="4" height="10" fill="black"/>
-                <rect x="6" y="8" width="22" height="4" fill="black"/>
-            `,
-            'logic': `
-                <rect x="4" y="4" width="24" height="24" fill="white" stroke="black" stroke-width="2"/>
-                <rect x="8" y="10" width="4" height="4" fill="black"/>
-                <rect x="8" y="18" width="4" height="4" fill="black"/>
-                <rect x="20" y="14" width="4" height="4" fill="black"/>
-                <line x1="12" y1="12" x2="16" y2="12" stroke="black" stroke-width="2"/>
-                <line x1="12" y1="20" x2="16" y2="20" stroke="black" stroke-width="2"/>
-                <line x1="16" y1="12" x2="16" y2="20" stroke="black" stroke-width="2"/>
-                <line x1="16" y1="16" x2="20" y2="16" stroke="black" stroke-width="2"/>
-            `,
-            'keyboard': `
-                <rect x="2" y="8" width="28" height="16" fill="white" stroke="black" stroke-width="2"/>
-                <rect x="4" y="10" width="4" height="4" fill="black"/>
-                <rect x="10" y="10" width="4" height="4" fill="black"/>
-                <rect x="16" y="10" width="4" height="4" fill="black"/>
-                <rect x="22" y="10" width="4" height="4" fill="black"/>
-                <rect x="6" y="16" width="18" height="4" fill="black"/>
-            `,
-            'guitar': `
-                <path d="M12 4 L20 4 L22 10 L24 24 L20 28 L12 28 L8 24 L10 10 Z" fill="white" stroke="black" stroke-width="2"/>
-                <circle cx="16" cy="20" r="3" fill="black"/>
-                <line x1="16" y1="4" x2="16" y2="28" stroke="black" stroke-width="1"/>
-            `
+            'default': `<rect x="4" y="4" width="24" height="24" fill="white" stroke="black" stroke-width="2"/><line x1="4" y1="8" x2="28" y2="8" stroke="black" stroke-width="2"/>`,
+            'map': `<rect x="2" y="2" width="28" height="28" fill="white" stroke="black" stroke-width="2"/><path d="M6 10 L12 8 L18 12 L26 6 L26 26 L18 22 L12 24 L6 20 Z" fill="none" stroke="black" stroke-width="2"/>`,
+            'globe': `<circle cx="16" cy="16" r="14" fill="white" stroke="black" stroke-width="2"/><ellipse cx="16" cy="16" rx="14" ry="4" stroke="black" stroke-width="2"/><line x1="16" y1="2" x2="16" y2="30" stroke="black" stroke-width="2"/><line x1="2" y1="16" x2="30" y2="16" stroke="black" stroke-width="2"/>`,
+            'book': `<rect x="6" y="4" width="20" height="24" fill="white" stroke="black" stroke-width="2"/><line x1="10" y1="4" x2="10" y2="28" stroke="black" stroke-width="2"/><line x1="14" y1="8" x2="22" y2="8" stroke="black" stroke-width="2"/><line x1="14" y1="12" x2="22" y2="12" stroke="black" stroke-width="2"/><line x1="14" y1="16" x2="22" y2="16" stroke="black" stroke-width="2"/><text x="13" y="24" font-family="monospace" font-size="8" fill="black">A</text>`,
+            'mac': `<rect x="4" y="4" width="24" height="20" rx="2" fill="white" stroke="black" stroke-width="2"/><line x1="4" y1="20" x2="28" y2="20" stroke="black" stroke-width="2"/><rect x="8" y="8" width="16" height="8" fill="black"/><line x1="10" y1="26" x2="22" y2="26" stroke="black" stroke-width="2"/>`,
+            'music': `<rect x="4" y="4" width="24" height="24" fill="white" stroke="black" stroke-width="2"/><line x1="4" y1="14" x2="28" y2="14" stroke="black" stroke-width="2"/><rect x="6" y="14" width="4" height="10" fill="black"/><rect x="14" y="14" width="4" height="10" fill="black"/><rect x="22" y="14" width="4" height="10" fill="black"/><rect x="6" y="8" width="22" height="4" fill="black"/>`,
+            'logic': `<rect x="4" y="4" width="24" height="24" fill="white" stroke="black" stroke-width="2"/><rect x="8" y="10" width="4" height="4" fill="black"/><rect x="8" y="18" width="4" height="4" fill="black"/><rect x="20" y="14" width="4" height="4" fill="black"/><line x1="12" y1="12" x2="16" y2="12" stroke="black" stroke-width="2"/><line x1="12" y1="20" x2="16" y2="20" stroke="black" stroke-width="2"/><line x1="16" y1="12" x2="16" y2="20" stroke="black" stroke-width="2"/><line x1="16" y1="16" x2="20" y2="16" stroke="black" stroke-width="2"/>`,
+            'keyboard': `<rect x="2" y="8" width="28" height="16" fill="white" stroke="black" stroke-width="2"/><rect x="4" y="10" width="4" height="4" fill="black"/><rect x="10" y="10" width="4" height="4" fill="black"/><rect x="16" y="10" width="4" height="4" fill="black"/><rect x="22" y="10" width="4" height="4" fill="black"/><rect x="6" y="16" width="18" height="4" fill="black"/>`,
+            'guitar': `<path d="M12 4 L20 4 L22 10 L24 24 L20 28 L12 28 L8 24 L10 10 Z" fill="white" stroke="black" stroke-width="2"/><circle cx="16" cy="20" r="3" fill="black"/><line x1="16" y1="4" x2="16" y2="28" stroke="black" stroke-width="1"/>`,
+            
+            // --- NEW EDUCATIONAL ICONS ---
+            'calculator': `<rect x="6" y="4" width="20" height="24" fill="white" stroke="black" stroke-width="2"/><rect x="8" y="6" width="16" height="6" fill="none" stroke="black"/><rect x="8" y="14" width="4" height="4" fill="black"/><rect x="14" y="14" width="4" height="4" fill="black"/><rect x="20" y="14" width="4" height="4" fill="black"/><rect x="8" y="20" width="4" height="4" fill="black"/><rect x="14" y="20" width="4" height="4" fill="black"/><rect x="20" y="20" width="4" height="4" fill="black"/>`,
+            'flask': `<path d="M12 4 L20 4 L20 10 L26 26 L26 28 L6 28 L6 26 L12 10 Z" fill="white" stroke="black" stroke-width="2"/><line x1="10" y1="20" x2="22" y2="20" stroke="black" stroke-width="1"/><line x1="11" y1="16" x2="21" y2="16" stroke="black" stroke-width="1"/>`,
+            'paint': `<path d="M4 20 Q4 28 12 28 Q20 28 20 20 Q20 12 12 12 Q4 12 4 20" fill="white" stroke="black" stroke-width="2"/><rect x="16" y="4" width="12" height="4" transform="rotate(45 22 6)" fill="black"/><line x1="20" y1="20" x2="28" y2="4" stroke="black" stroke-width="2"/><circle cx="10" cy="18" r="1" fill="black"/><circle cx="14" cy="22" r="1" fill="black"/>`,
+            'scroll': `<path d="M6 6 Q8 4 10 6 L26 6 Q28 4 30 6 L30 26 Q28 28 26 26 L10 26 Q8 28 6 26 Z" fill="white" stroke="black" stroke-width="2"/><path d="M10 6 L10 26" stroke="black" stroke-width="1"/><path d="M26 6 L26 26" stroke="black" stroke-width="1"/><line x1="12" y1="10" x2="24" y2="10" stroke="black" stroke-width="1"/><line x1="12" y1="14" x2="24" y2="14" stroke="black" stroke-width="1"/><line x1="12" y1="18" x2="24" y2="18" stroke="black" stroke-width="1"/>`,
+            'column': `<rect x="6" y="4" width="20" height="4" fill="white" stroke="black" stroke-width="2"/><rect x="6" y="26" width="20" height="4" fill="white" stroke="black" stroke-width="2"/><rect x="8" y="8" width="4" height="18" fill="white" stroke="black" stroke-width="2"/><rect x="14" y="8" width="4" height="18" fill="white" stroke="black" stroke-width="2"/><rect x="20" y="8" width="4" height="18" fill="white" stroke="black" stroke-width="2"/>`
         };
 
         // =================================================================
-        // RENDER LOGIC
+        // 4. RENDER LOGIC
         // =================================================================
         
+        // --- App Rendering ---
         const container = document.getElementById('appContainer');
         const countLabel = document.getElementById('itemCount');
         const diskLabel = document.getElementById('diskSpace');
 
         function renderApps() {
-            container.innerHTML = ''; // Clear existing
+            container.innerHTML = '';
             
             myApps.forEach(app => {
                 const iconSvg = iconLibrary[app.icon] || iconLibrary['default'];
@@ -361,7 +377,6 @@
                 container.appendChild(iconDiv);
             });
 
-            // Update stats
             countLabel.textContent = `${myApps.length} items`;
             diskLabel.textContent = `${myApps.length * 5} MB in disk`;
         }
@@ -371,10 +386,73 @@
             window.open(url, '_blank', features);
         }
 
-        // Initialize
-        renderApps();
+        // --- Menu Bar Rendering & Logic ---
+        const menubar = document.getElementById('menubar');
+        let openMenu = null;
 
-        // --- Draggable Window Logic (Same as before) ---
+        function renderMenu() {
+            menubar.innerHTML = '';
+            
+            Object.keys(menuConfig).forEach(title => {
+                // Menu Title Item
+                const menuTitleDiv = document.createElement('div');
+                menuTitleDiv.className = 'menu-title';
+                if(title === "") menuTitleDiv.classList.add('apple-logo');
+                menuTitleDiv.textContent = title;
+                
+                // Dropdown Container
+                const dropdownDiv = document.createElement('div');
+                dropdownDiv.className = 'dropdown-menu';
+                
+                // Add items to dropdown
+                menuConfig[title].forEach(item => {
+                    if (item === "---") {
+                        const sep = document.createElement('div');
+                        sep.className = 'dropdown-separator';
+                        dropdownDiv.appendChild(sep);
+                    } else {
+                        const itemDiv = document.createElement('div');
+                        itemDiv.className = 'dropdown-item';
+                        itemDiv.textContent = item;
+                        itemDiv.onclick = (e) => {
+                            e.stopPropagation(); // Don't bubble up
+                            console.log(`Clicked: ${title} > ${item}`);
+                            closeAllMenus();
+                        };
+                        dropdownDiv.appendChild(itemDiv);
+                    }
+                });
+
+                // Interaction
+                menuTitleDiv.onclick = (e) => {
+                    e.stopPropagation();
+                    if (openMenu === dropdownDiv) {
+                        closeAllMenus();
+                    } else {
+                        closeAllMenus();
+                        dropdownDiv.classList.add('visible');
+                        menuTitleDiv.classList.add('active');
+                        openMenu = dropdownDiv;
+                    }
+                };
+                
+                // Append Dropdown to Title (so it positions relatively)
+                menuTitleDiv.appendChild(dropdownDiv);
+                menubar.appendChild(menuTitleDiv);
+            });
+        }
+
+        function closeAllMenus() {
+            document.querySelectorAll('.dropdown-menu').forEach(el => el.classList.remove('visible'));
+            document.querySelectorAll('.menu-title').forEach(el => el.classList.remove('active'));
+            openMenu = null;
+        }
+
+        // Close menus when clicking desktop
+        document.body.addEventListener('click', closeAllMenus);
+
+
+        // --- Draggable Window Logic ---
         const windowEl = document.getElementById('mainWindow');
         const titleBar = document.getElementById('dragHandle');
 
@@ -421,6 +499,11 @@
         function setTranslate(xPos, yPos, el) {
             el.style.transform = "translate3d(" + xPos + "px, " + yPos + "px, 0)";
         }
+
+        // Initialize Everything
+        renderApps();
+        renderMenu();
+
     </script>
 </body>
 </html>
