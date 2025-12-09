@@ -175,9 +175,6 @@
                 transform: scale(0.8); /* Shrink trash slightly on mobile */
                 transform-origin: bottom right;
             }
-
-            /* Hide less critical menu items on very small screens if needed, 
-               or just rely on horizontal scrolling/wrapping (flex default) */
         }
 
         .title-bar {
@@ -281,6 +278,74 @@
             shape-rendering: crispEdges;
         }
 
+        /* --- Retro Alert Box --- */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 3000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            /* Invisible blocker to stop clicks elsewhere */
+        }
+        
+        .alert-box {
+            background-color: var(--sys-white);
+            border: 2px solid var(--sys-black);
+            box-shadow: 4px 4px 0px var(--sys-black);
+            padding: 15px 20px;
+            width: 280px;
+            max-width: 80%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .alert-content {
+            display: flex;
+            flex-direction: row;
+            align-items: flex-start;
+            margin-bottom: 20px;
+        }
+
+        .alert-icon-placeholder {
+            width: 32px;
+            height: 32px;
+            margin-right: 20px;
+            flex-shrink: 0;
+        }
+
+        .alert-text {
+            font-family: 'Chicago', 'Geneva', sans-serif;
+            line-height: 1.4;
+            white-space: pre-wrap; /* Allow newlines */
+            flex-grow: 1;
+            padding-top: 4px;
+        }
+
+        .alert-button-container {
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .alert-button {
+            background: var(--sys-white);
+            border: 2px solid var(--sys-black);
+            border-radius: 8px; /* Classic Mac rounded button */
+            padding: 4px 24px;
+            font-family: 'Chicago', 'Geneva', sans-serif;
+            cursor: pointer;
+            font-size: 12px;
+            outline: none;
+        }
+
+        .alert-button:active {
+            background: var(--sys-black);
+            color: var(--sys-white);
+        }
+
     </style>
 </head>
 <body>
@@ -317,6 +382,26 @@
         <span class="icon-label" style="background:white;">Trash</span>
     </div>
 
+    <!-- Pop-up Alert Modal -->
+    <div id="systemAlert" class="modal-overlay">
+        <div class="alert-box">
+            <div class="alert-content">
+                <!-- Simple Alert Icon (Exclamation Bubble) -->
+                <div class="alert-icon-placeholder">
+                     <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M4 2 L28 2 L28 24 L12 24 L4 30 L4 2 Z" fill="white" stroke="black" stroke-width="2"/>
+                        <line x1="16" y1="6" x2="16" y2="16" stroke="black" stroke-width="2"/>
+                        <circle cx="16" cy="20" r="1.5" fill="black"/>
+                     </svg>
+                </div>
+                <div class="alert-text" id="alertMessage">Default Message</div>
+            </div>
+            <div class="alert-button-container">
+                <button class="alert-button" onclick="closeAlert()">OK</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         // =================================================================
         // 1. APP CONFIGURATION
@@ -326,7 +411,7 @@
             { name: "States",    url: "https://bfugitt.github.io/states/",           icon: "map" },
             { name: "World",     url: "https://bfugitt.github.io/world/",            icon: "globe" },
             { name: "Vocab",     url: "https://bfugitt.github.io/macvocab/",         icon: "book" },
-            { name: "LearnIt",   url: "https://bfugitt.github.io/learnit/?mod=4-tci-3.json", icon: "mac" },
+            { name: "LearnIt",   url: "https://bfugitt.github.io/learnit/",          icon: "mac" },
             { name: "WebSynth",  url: "https://bfugitt.github.io/web-synth",         icon: "music" },
             { name: "Logic",     url: "https://bfugitt.github.io/logic/",            icon: "logic" },
             { name: "MacType",   url: "https://bfugitt.github.io/mactype/",          icon: "keyboard" },
@@ -337,16 +422,53 @@
         ];
 
         // =================================================================
-        // 2. MENU CONFIGURATION
+        // 2. MENU CONFIGURATION (With Pop-up Messages)
         // =================================================================
+        // You can now use objects { label: "...", message: "..." } to define the pop-up text.
+        // Use "---" for separators.
+        // Simple strings will get a default "Not implemented" message.
         
         const menuConfig = {
-            "": ["About System 6", "---", "Control Panel", "Chooser"],
-            "File": ["New Folder", "Open", "Print", "Close", "---", "Quit"],
-            "Edit": ["Undo", "---", "Cut", "Copy", "Paste", "Clear"],
-            "View": ["By Icon", "By Small Icon", "By Name", "By Date"],
-            "Special": ["Clean Up Window", "Empty Trash", "Erase Disk", "---", "Restart", "Shutdown"],
-            "Help": ["Help Center", "Keyboard Shortcuts"]
+            "": [
+                { label: "About System 6/7", message: "Web App Launcher\n\nVersion 1.0\nCreated with Gemini." },
+                "---",
+                { label: "Control Panel", message: "Do you control the panel, or does the panel control you?" },
+                { label: "Chooser", message: "You are a very good chooser!" }
+            ],
+            "File": [
+                { label: "New Folder", message: "Unable to create folder.\n\nThe disk is write-protected." },
+                { label: "Open", message: "Shut... " },
+                { label: "Print", message: "Or cursive... either is fine" },
+                { label: "Close", message: "To close this desktop, please close your browser tab." },
+                "---",
+                { label: "Quit", message: "Don't stop!  Never give up!" }
+            ],
+            "Edit": [
+                { label: "Undo", message: "Nothing to undo." },
+                "---",
+                { label: "Cut", message: "Snip, snip, snip.." },
+                { label: "Copy", message: "Always do your own work." },
+                { label: "Paste", message: "Don't eat paste." },
+                { label: "Clear", message: "Yes, now I see... It is all perfectly clear now." }
+            ],
+            "View": [
+                { label: "By Icon", message: "Already viewing by Icon." },
+                { label: "By Small Icon", message: "Small icons coming soon." },
+                { label: "By Name", message: "I really think the icons are fine the way they are." },
+                { label: "By Date", message: "Why would you want to do that?" }
+            ],
+            "Special": [
+                { label: "Clean Up Window", message: "Windex and paper towels work well." },
+                { label: "Empty Trash", message: "Your mother appreciates you taking the trash out." },
+                { label: "Erase Disk", message: "That is a very bad idea..." },
+                "---",
+                { label: "Restart", message: "Good morning!" },
+                { label: "Shutdown", message: "Do you need a nap?" }
+            ],
+            "Help": [
+                { label: "Help Center", message: "God helps those who help themselves." },
+                { label: "Keyboard Shortcuts", message: "Keep your fingers on the home row." }
+            ]
         };
 
 
@@ -409,6 +531,20 @@
             window.open(url, '_blank', features);
         }
 
+        // --- Alert System ---
+        const alertModal = document.getElementById('systemAlert');
+        const alertMessageEl = document.getElementById('alertMessage');
+
+        function showAlert(message) {
+            alertMessageEl.textContent = message;
+            alertModal.style.display = 'flex';
+        }
+
+        function closeAlert() {
+            alertModal.style.display = 'none';
+        }
+
+
         // --- Menu Bar Rendering & Logic ---
         const menubar = document.getElementById('menubar');
         let openMenu = null;
@@ -425,22 +561,33 @@
                 const dropdownDiv = document.createElement('div');
                 dropdownDiv.className = 'dropdown-menu';
                 
-                menuConfig[title].forEach(item => {
-                    if (item === "---") {
-                        const sep = document.createElement('div');
-                        sep.className = 'dropdown-separator';
-                        dropdownDiv.appendChild(sep);
+                menuConfig[title].forEach(itemData => {
+                    // Normalize data: support simple strings or objects
+                    let label, message;
+                    
+                    if (typeof itemData === 'string') {
+                        if (itemData === "---") {
+                            const sep = document.createElement('div');
+                            sep.className = 'dropdown-separator';
+                            dropdownDiv.appendChild(sep);
+                            return; // Next item
+                        }
+                        label = itemData;
+                        message = "Function not implemented.";
                     } else {
-                        const itemDiv = document.createElement('div');
-                        itemDiv.className = 'dropdown-item';
-                        itemDiv.textContent = item;
-                        itemDiv.onclick = (e) => {
-                            e.stopPropagation();
-                            console.log(`Clicked: ${title} > ${item}`);
-                            closeAllMenus();
-                        };
-                        dropdownDiv.appendChild(itemDiv);
+                        label = itemData.label;
+                        message = itemData.message || "Function not implemented.";
                     }
+
+                    const itemDiv = document.createElement('div');
+                    itemDiv.className = 'dropdown-item';
+                    itemDiv.textContent = label;
+                    itemDiv.onclick = (e) => {
+                        e.stopPropagation();
+                        closeAllMenus();
+                        showAlert(message);
+                    };
+                    dropdownDiv.appendChild(itemDiv);
                 });
 
                 menuTitleDiv.onclick = (e) => {
