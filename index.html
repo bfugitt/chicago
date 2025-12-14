@@ -3,856 +3,813 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>System 6 Animator</title>
-    
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
-    
-    <!-- GIF Encoder Library -->
-    <!-- Switched to jsDelivr which is often less blocked in schools than unpkg -->
-    <script src="https://cdn.jsdelivr.net/npm/gifenc@1.0.3/dist/gifenc.min.js"></script>
-
+    <title>System 6 Launcher</title>
     <style>
-        /* --- System 6 Theme Styles --- */
+        /* --- System 6 Aesthetics --- */
+        @font-face {
+            font-family: 'Chicago';
+            src: local('Chicago'), local('Geneva'), url('https://db.onlinewebfonts.com/t/2cba833c8736a323719b0d12e697330a.woff2') format('woff2'); 
+        }
+
         :root {
-            --bg-pattern: repeating-linear-gradient(45deg, #ccc 25%, transparent 25%, transparent 75%, #ccc 75%, #ccc),
-                          repeating-linear-gradient(45deg, #ccc 25%, #f0f0f0 25%, #f0f0f0 75%, #ccc 75%, #ccc);
-            --sys-black: #000;
-            --sys-white: #fff;
-            --sys-grey: #aaa; /* Onion skin color */
-            --shadow: 2px 2px 0px var(--sys-black);
+            --sys-black: #000000;
+            --sys-white: #ffffff;
+            --sys-blue: #000080;
         }
 
         body {
-            font-family: 'VT323', monospace;
-            background-color: #f0f0f0;
-            background-image: linear-gradient(45deg, #ccc 25%, transparent 25%), 
-                              linear-gradient(-45deg, #ccc 25%, transparent 25%), 
-                              linear-gradient(45deg, transparent 75%, #ccc 75%), 
-                              linear-gradient(-45deg, transparent 75%, #ccc 75%);
-            background-size: 4px 4px;
             margin: 0;
-            padding: 20px;
+            padding: 0;
+            height: 100vh;
+            width: 100vw;
+            /* Dark background outside the "Monitor" */
+            background-color: #2a2a2a; 
             display: flex;
+            align-items: center;
             justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            color: var(--sys-black);
-            overflow-x: hidden;
+            font-family: 'Chicago', 'Geneva', sans-serif;
+            font-size: 12px;
             user-select: none;
-            -webkit-user-select: none;
+            -webkit-font-smoothing: none;
+            overscroll-behavior: none;
         }
 
-        /* The Main Window */
-        .window {
-            background: var(--sys-white);
-            border: 2px solid var(--sys-black);
-            box-shadow: 4px 4px 0px rgba(0,0,0,0.2);
+        /* --- The Virtual Screen (Monitor) --- */
+        #virtual-screen {
+            position: relative;
             width: 100%;
-            max-width: 500px;
-            display: flex;
-            flex-direction: column;
+            height: 100%;
+            /* Max dimensions for desktop look, usually full width on mobile */
+            max-width: 1024px; 
+            max-height: 768px;
+            
+            /* Classic 50% Gray Dither Background */
+            background-color: var(--sys-white);
+            background-image: linear-gradient(45deg, #000 25%, transparent 25%, transparent 75%, #000 75%, #000), 
+                              linear-gradient(45deg, #000 25%, transparent 25%, transparent 75%, #000 75%, #000);
+            background-size: 2px 2px;
+            background-position: 0 0, 1px 1px;
+            
+            /* Bezel / Bounding Box */
+            border: 2px solid #000;
+            box-shadow: 0 0 0 2px #555, 0 10px 20px rgba(0,0,0,0.5);
+            
+            overflow: hidden; /* Keep windows inside */
         }
 
-        /* Title Bar */
-        .title-bar {
-            background: var(--sys-black);
-            color: var(--sys-white);
-            padding: 4px 8px;
+        /* Mobile override: fill screen completely */
+        @media (max-width: 600px) {
+            #virtual-screen {
+                max-width: 100%;
+                max-height: 100%;
+                border: none;
+                box-shadow: none;
+            }
+        }
+
+        /* --- Menu Bar --- */
+        #menubar {
+            background-color: var(--sys-white);
+            height: 20px;
+            border-bottom: 1px solid var(--sys-black);
             display: flex;
-            justify-content: space-between;
             align-items: center;
-            border-bottom: 2px solid var(--sys-black);
-            font-size: 1.2rem;
-            letter-spacing: 1px;
+            padding: 0 5px;
+            position: absolute; /* Relative to virtual-screen */
+            top: 0;
+            left: 0;
+            width: 100%;
+            z-index: 10000;
+            box-sizing: border-box;
+        }
+
+        .menu-title {
+            padding: 0 8px;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            cursor: default;
+            position: relative; 
+        }
+
+        .menu-title:hover, .menu-title.active {
+            background-color: var(--sys-black);
+            color: var(--sys-white);
+        }
+
+        .apple-logo {
+            font-size: 14px;
+            padding-right: 12px;
+            padding-left: 8px; 
+        }
+
+        /* --- Dropdown Menus --- */
+        .dropdown-menu {
+            position: absolute;
+            top: 20px;
+            left: 0;
+            background-color: var(--sys-white);
+            border: 1px solid var(--sys-black);
+            box-shadow: 2px 2px 0px var(--sys-black);
+            min-width: 150px;
+            display: none;
+            flex-direction: column;
+            padding: 2px 0;
+            color: var(--sys-black);
+            z-index: 20000;
+        }
+
+        .dropdown-menu.visible {
+            display: flex;
+        }
+
+        .dropdown-item {
+            padding: 6px 15px;
+            cursor: default;
+            white-space: nowrap;
+        }
+
+        .dropdown-item:hover {
+            background-color: var(--sys-black);
+            color: var(--sys-white);
+        }
+
+        .dropdown-separator {
+            height: 1px;
+            background-color: var(--sys-black);
+            background-image: linear-gradient(to right, var(--sys-black) 50%, transparent 50%);
+            background-size: 4px 1px;
+            background-repeat: repeat-x;
+            margin: 3px 0;
+            border: none;
+            width: 100%;
+        }
+
+        /* --- Desktop Icons --- */
+        .desktop-icon {
+            position: absolute;
+            text-align: center;
+            cursor: pointer;
+            z-index: 50; 
+            width: 64px; /* Fixed width for better centering */
         }
         
-        .title-lines {
-            flex-grow: 1;
-            height: 12px;
-            margin: 0 10px;
-            background: repeating-linear-gradient(
-                to bottom,
-                var(--sys-white),
-                var(--sys-white) 1px,
-                var(--sys-black) 1px,
-                var(--sys-black) 2px
-            );
+        .desktop-icon svg {
+            width: 32px;
+            height: 32px;
+            display: block;
+            margin: 0 auto 4px auto;
+        }
+
+        .icon-label {
+            background-color: var(--sys-white);
+            padding: 2px 4px;
+            border: 1px solid transparent;
+        }
+        
+        .desktop-icon:active .icon-label {
+            background-color: var(--sys-black);
+            color: var(--sys-white);
+        }
+
+        /* Specific Icon Positions */
+        #icon-hd {
+            top: 40px;
+            right: 20px;
+        }
+
+        #icon-trash {
+            bottom: 20px;
+            right: 20px;
+        }
+
+        /* --- Window System --- */
+        .window {
+            position: absolute;
+            background-color: var(--sys-white);
+            border: 1px solid var(--sys-black);
+            box-shadow: 2px 2px 0px var(--sys-black);
+            display: flex;
+            flex-direction: column;
+            min-width: 200px;
+            min-height: 150px;
+        }
+
+        .title-bar {
+            height: 24px;
+            border-bottom: 1px solid var(--sys-black);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            background: 
+                repeating-linear-gradient(
+                    to bottom,
+                    var(--sys-black),
+                    var(--sys-black) 1px,
+                    var(--sys-white) 1px,
+                    var(--sys-white) 2px
+                );
+            cursor: grab;
+            flex-shrink: 0;
+            touch-action: none;
         }
 
         .close-box {
             width: 12px;
             height: 12px;
-            background: var(--sys-white);
-            border: 1px solid var(--sys-white);
-            box-shadow: inset 1px 1px 0 #000;
-        }
-
-        /* Main Content Area */
-        .content {
-            padding: 10px;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-
-        /* Toolbar */
-        .toolbar {
-            display: flex;
-            gap: 5px;
-            flex-wrap: wrap;
-            justify-content: center;
-            padding-bottom: 10px;
-            border-bottom: 1px dashed var(--sys-black);
-        }
-
-        .btn {
-            background: var(--sys-white);
-            border: 2px solid var(--sys-black);
-            padding: 5px 10px;
-            font-family: 'VT323', monospace;
-            font-size: 1rem;
-            cursor: pointer;
-            box-shadow: 2px 2px 0px var(--sys-black);
-            transition: transform 0.1s;
-            text-transform: uppercase;
-            text-decoration: none;
-            color: var(--sys-black);
-            display: inline-block;
-            text-align: center;
-        }
-
-        .btn:active {
-            transform: translate(2px, 2px);
-            box-shadow: none;
-            background: var(--sys-black);
-            color: var(--sys-white);
-        }
-
-        .btn.active {
-            background: var(--sys-black);
-            color: var(--sys-white);
-            box-shadow: inset 2px 2px 0px rgba(255,255,255,0.2);
-        }
-
-        .btn:disabled {
-            color: #aaa;
-            border-color: #aaa;
-            box-shadow: none;
-            cursor: default;
-        }
-
-        .control-group {
-            display: flex;
-            gap: 5px;
-            align-items: center;
             border: 1px solid var(--sys-black);
-            padding: 3px;
+            background-color: var(--sys-white);
+            position: absolute;
+            left: 6px;
+            top: 5px;
+            cursor: pointer;
+        }
+        
+        .close-box:active {
+            background-color: black;
         }
 
-        .control-group-title {
-            font-size: 0.8rem;
-            margin-right: 5px;
+        .zoom-box {
+             width: 12px;
+             height: 12px;
+             border: 1px solid var(--sys-black);
+             background-color: var(--sys-white);
+             position: absolute;
+             right: 6px;
+             top: 5px;
+             display: flex;
+             align-items: center;
+             justify-content: center;
+        }
+        
+        .zoom-inner {
+            width: 6px;
+            height: 6px;
+            border: 1px solid var(--sys-black);
+        }
+
+        .window-title {
+            background-color: var(--sys-white);
+            padding: 0 10px;
             font-weight: bold;
         }
 
-        /* Canvas Area */
-        .canvas-container {
+        .window-info-bar {
+            height: 20px;
+            border-bottom: 1px solid var(--sys-black);
             display: flex;
-            justify-content: center;
             align-items: center;
-            background: #e0e0e0;
-            padding: 10px;
-            border: 1px inset var(--sys-black);
-            position: relative;
+            justify-content: space-between;
+            padding: 0 5px;
+            font-size: 10px;
+            flex-shrink: 0;
         }
 
-        canvas {
-            background: var(--sys-white);
-            border: 2px solid var(--sys-black);
-            cursor: crosshair;
-            image-rendering: pixelated;
-            box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
+        .window-content {
+            padding: 20px;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+            gap: 15px;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            flex-grow: 1;
         }
 
-        /* Film Strip (Timeline) */
-        .film-strip {
+        /* --- App Icons inside Window --- */
+        .window-icon {
             display: flex;
-            gap: 5px;
-            overflow-x: auto;
-            padding: 5px 0;
-            height: 60px;
-            border-top: 2px solid var(--sys-black);
-            background: #ddd;
-            scrollbar-width: thin;
+            flex-direction: column;
+            align-items: center;
+            cursor: pointer;
+            text-align: center;
+            width: 80px;
+            -webkit-tap-highlight-color: transparent; 
+        }
+
+        .window-icon svg {
+            width: 32px;
+            height: 32px;
+            margin-bottom: 5px;
         }
         
-        .film-frame {
-            min-width: 50px;
-            width: 50px;
-            height: 50px;
-            background: var(--sys-white);
-            border: 2px solid var(--sys-black);
-            position: relative;
-            cursor: pointer;
-            image-rendering: pixelated;
+        .window-icon:active .icon-label {
+            background-color: var(--sys-black);
+            color: var(--sys-white);
+        }
+        
+        svg {
+            shape-rendering: crispEdges;
         }
 
-        .film-frame.selected {
-            border: 3px solid red; /* Highlight current frame strongly */
-            box-shadow: 0 0 5px red;
-        }
-
-        .film-frame canvas {
+        /* --- Retro Alert Box --- */
+        .modal-overlay {
+            position: absolute; /* Changed to absolute to stay inside screen */
+            top: 0;
+            left: 0;
             width: 100%;
             height: 100%;
-            border: none;
-            box-shadow: none;
-            pointer-events: none;
-        }
-
-        .frame-number {
-            position: absolute;
-            bottom: 0;
-            right: 0;
-            background: var(--sys-black);
-            color: var(--sys-white);
-            font-size: 10px;
-            padding: 1px 3px;
-        }
-
-        /* Playback Controls */
-        .playback-controls {
-            display: flex;
-            justify-content: space-between;
+            z-index: 30000;
+            display: none;
             align-items: center;
-            margin-top: 5px;
+            justify-content: center;
         }
         
-        label {
-            font-size: 1.1rem;
+        .alert-box {
+            background-color: var(--sys-white);
+            border: 2px solid var(--sys-black);
+            box-shadow: 4px 4px 0px var(--sys-black);
+            padding: 15px 20px;
+            width: 280px;
+            max-width: 80%;
+            display: flex;
+            flex-direction: column;
         }
 
-        input[type="range"] {
-            -webkit-appearance: none;
-            background: transparent;
-            width: 100px;
+        .alert-content {
+            display: flex;
+            flex-direction: row;
+            align-items: flex-start;
+            margin-bottom: 20px;
         }
-        input[type="range"]::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            height: 16px;
-            width: 16px;
-            background: var(--sys-black);
+
+        .alert-icon-placeholder {
+            width: 32px;
+            height: 32px;
+            margin-right: 20px;
+            flex-shrink: 0;
+        }
+
+        .alert-text {
+            font-family: 'Chicago', 'Geneva', sans-serif;
+            line-height: 1.4;
+            white-space: pre-wrap;
+            flex-grow: 1;
+            padding-top: 4px;
+        }
+
+        .alert-button-container {
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .alert-button {
+            background: var(--sys-white);
+            border: 2px solid var(--sys-black);
+            border-radius: 8px;
+            padding: 4px 24px;
+            font-family: 'Chicago', 'Geneva', sans-serif;
             cursor: pointer;
-            margin-top: -6px;
+            font-size: 12px;
+            outline: none;
         }
-        input[type="range"]::-webkit-slider-runnable-track {
-            width: 100%;
-            height: 4px;
+
+        .alert-button:active {
             background: var(--sys-black);
+            color: var(--sys-white);
         }
 
-        /* Responsive */
-        @media (max-width: 500px) {
-            body { padding: 5px; }
-            .window { border-width: 2px; }
-            .btn { font-size: 0.9rem; padding: 4px 6px; }
-            .film-strip { height: 45px; }
-            .film-frame { min-width: 35px; width: 35px; height: 35px; }
-            .control-group { flex-wrap: wrap; justify-content: center;}
-        }
-
-        .hidden { display: none !important; }
     </style>
 </head>
 <body>
 
-<div class="window">
-    <div class="title-bar">
-        <div class="close-box"></div>
-        <div class="title-lines"></div>
-        <span>PIXEL.ANIM</span>
-        <div class="title-lines"></div>
+    <!-- This container is the "Monitor" -->
+    <div id="virtual-screen">
+        
+        <!-- Menu Bar -->
+        <div id="menubar"></div>
+
+        <!-- Desktop Icon: Macintosh HD (Click to reopen main window) -->
+        <div id="icon-hd" class="desktop-icon" onclick="openWindow(fileSystem)">
+            <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect x="4" y="10" width="24" height="14" fill="white" stroke="black" stroke-width="2"/>
+                <line x1="4" y1="20" x2="28" y2="20" stroke="black" stroke-width="2"/>
+                <rect x="6" y="22" width="4" height="0" fill="black" stroke="black" stroke-width="2"/>
+                <rect x="6" y="22" width="2" height="2" fill="black"/>
+            </svg>
+            <span class="icon-label">Macintosh HD</span>
+        </div>
+
+        <!-- Desktop Icon: Trash -->
+        <div id="icon-trash" class="desktop-icon">
+            <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M4 4 H28 V28 H4 Z" fill="white" stroke="black" stroke-width="2"/>
+                <line x1="6" y1="4" x2="6" y2="28" stroke="black" stroke-width="1"/>
+                <line x1="9" y1="4" x2="9" y2="28" stroke="black" stroke-width="1"/>
+                <line x1="12" y1="4" x2="12" y2="28" stroke="black" stroke-width="1"/>
+                <line x1="28" y1="6" x2="4" y2="6" stroke="black" stroke-width="1"/>
+            </svg>
+            <span class="icon-label" style="background:white;">Trash</span>
+        </div>
+
+        <!-- Pop-up Alert Modal -->
+        <div id="systemAlert" class="modal-overlay">
+            <div class="alert-box">
+                <div class="alert-content">
+                    <div class="alert-icon-placeholder">
+                         <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M4 2 L28 2 L28 24 L12 24 L4 30 L4 2 Z" fill="white" stroke="black" stroke-width="2"/>
+                            <line x1="16" y1="6" x2="16" y2="16" stroke="black" stroke-width="2"/>
+                            <circle cx="16" cy="20" r="1.5" fill="black"/>
+                         </svg>
+                    </div>
+                    <div class="alert-text" id="alertMessage">Default Message</div>
+                </div>
+                <div class="alert-button-container">
+                    <button class="alert-button" onclick="closeAlert()">OK</button>
+                </div>
+            </div>
+        </div>
+
     </div>
 
-    <div class="content">
-        <!-- Tools Row 1 -->
-        <div class="toolbar">
-            <div class="control-group">
-                <button class="btn active" id="tool-pen" onclick="setTool('pen')">Pen</button>
-                <button class="btn" id="tool-eraser" onclick="setTool('eraser')">Eraser</button>
-                <button class="btn" onclick="clearFrame()">Clear</button>
-            </div>
+    <script>
+        // =================================================================
+        // 1. ICON LIBRARY
+        // =================================================================
+        const iconLibrary = {
+            'default': `<rect x="4" y="4" width="24" height="24" fill="white" stroke="black" stroke-width="2"/><line x1="4" y1="8" x2="28" y2="8" stroke="black" stroke-width="2"/>`,
+            'folder': `<path d="M2 4 L12 4 L14 8 L28 8 L28 26 L2 26 Z" fill="white" stroke="black" stroke-width="2"/><line x1="2" y1="10" x2="28" y2="10" stroke="black" stroke-width="2"/>`,
+            'map': `<rect x="2" y="2" width="28" height="28" fill="white" stroke="black" stroke-width="2"/><path d="M6 10 L12 8 L18 12 L26 6 L26 26 L18 22 L12 24 L6 20 Z" fill="none" stroke="black" stroke-width="2"/>`,
+            'globe': `<circle cx="16" cy="16" r="14" fill="white" stroke="black" stroke-width="2"/><ellipse cx="16" cy="16" rx="14" ry="4" stroke="black" stroke-width="2"/><line x1="16" y1="2" x2="16" y2="30" stroke="black" stroke-width="2"/><line x1="2" y1="16" x2="30" y2="16" stroke="black" stroke-width="2"/>`,
+            'book': `<rect x="6" y="4" width="20" height="24" fill="white" stroke="black" stroke-width="2"/><line x1="10" y1="4" x2="10" y2="28" stroke="black" stroke-width="2"/><line x1="14" y1="8" x2="22" y2="8" stroke="black" stroke-width="2"/><line x1="14" y1="12" x2="22" y2="12" stroke="black" stroke-width="2"/><line x1="14" y1="16" x2="22" y2="16" stroke="black" stroke-width="2"/><text x="13" y="24" font-family="monospace" font-size="8" fill="black">A</text>`,
+            'mac': `<rect x="4" y="4" width="24" height="20" rx="2" fill="white" stroke="black" stroke-width="2"/><line x1="4" y1="20" x2="28" y2="20" stroke="black" stroke-width="2"/><rect x="8" y="8" width="16" height="8" fill="black"/><line x1="10" y1="26" x2="22" y2="26" stroke="black" stroke-width="2"/>`,
+            'music': `<rect x="4" y="4" width="24" height="24" fill="white" stroke="black" stroke-width="2"/><line x1="4" y1="14" x2="28" y2="14" stroke="black" stroke-width="2"/><rect x="6" y="14" width="4" height="10" fill="black"/><rect x="14" y="14" width="4" height="10" fill="black"/><rect x="22" y="14" width="4" height="10" fill="black"/><rect x="6" y="8" width="22" height="4" fill="black"/>`,
+            'logic': `<rect x="4" y="4" width="24" height="24" fill="white" stroke="black" stroke-width="2"/><rect x="8" y="10" width="4" height="4" fill="black"/><rect x="8" y="18" width="4" height="4" fill="black"/><rect x="20" y="14" width="4" height="4" fill="black"/><line x1="12" y1="12" x2="16" y2="12" stroke="black" stroke-width="2"/><line x1="12" y1="20" x2="16" y2="20" stroke="black" stroke-width="2"/><line x1="16" y1="12" x2="16" y2="20" stroke="black" stroke-width="2"/><line x1="16" y1="16" x2="20" y2="16" stroke="black" stroke-width="2"/>`,
+            'keyboard': `<rect x="2" y="8" width="28" height="16" fill="white" stroke="black" stroke-width="2"/><rect x="4" y="10" width="4" height="4" fill="black"/><rect x="10" y="10" width="4" height="4" fill="black"/><rect x="16" y="10" width="4" height="4" fill="black"/><rect x="22" y="10" width="4" height="4" fill="black"/><rect x="6" y="16" width="18" height="4" fill="black"/>`,
+            'guitar': `<path d="M12 4 L20 4 L22 10 L24 24 L20 28 L12 28 L8 24 L10 10 Z" fill="white" stroke="black" stroke-width="2"/><circle cx="16" cy="20" r="3" fill="black"/><line x1="16" y1="4" x2="16" y2="28" stroke="black" stroke-width="1"/>`,
+            'calculator': `<rect x="6" y="4" width="20" height="24" fill="white" stroke="black" stroke-width="2"/><rect x="8" y="6" width="16" height="6" fill="none" stroke="black"/><rect x="8" y="14" width="4" height="4" fill="black"/><rect x="14" y="14" width="4" height="4" fill="black"/><rect x="20" y="14" width="4" height="4" fill="black"/><rect x="8" y="20" width="4" height="4" fill="black"/><rect x="14" y="20" width="4" height="4" fill="black"/><rect x="20" y="20" width="4" height="4" fill="black"/>`,
+            'flask': `<path d="M12 4 L20 4 L20 10 L26 26 L26 28 L6 28 L6 26 L12 10 Z" fill="white" stroke="black" stroke-width="2"/><line x1="10" y1="20" x2="22" y2="20" stroke="black" stroke-width="1"/><line x1="11" y1="16" x2="21" y2="16" stroke="black" stroke-width="1"/>`,
+            'paint': `<path d="M4 20 Q4 28 12 28 Q20 28 20 20 Q20 12 12 12 Q4 12 4 20" fill="white" stroke="black" stroke-width="2"/><rect x="16" y="4" width="12" height="4" transform="rotate(45 22 6)" fill="black"/><line x1="20" y1="20" x2="28" y2="4" stroke="black" stroke-width="2"/><circle cx="10" cy="18" r="1" fill="black"/><circle cx="14" cy="22" r="1" fill="black"/>`,
+            'scroll': `<path d="M6 6 Q8 4 10 6 L26 6 Q28 4 30 6 L30 26 Q28 28 26 26 L10 26 Q8 28 6 26 Z" fill="white" stroke="black" stroke-width="2"/><path d="M10 6 L10 26" stroke="black" stroke-width="1"/><path d="M26 6 L26 26" stroke="black" stroke-width="1"/><line x1="12" y1="10" x2="24" y2="10" stroke="black" stroke-width="1"/><line x1="12" y1="14" x2="24" y2="14" stroke="black" stroke-width="1"/><line x1="12" y1="18" x2="24" y2="18" stroke="black" stroke-width="1"/>`,
+            'column': `<rect x="6" y="4" width="20" height="4" fill="white" stroke="black" stroke-width="2"/><rect x="6" y="26" width="20" height="4" fill="white" stroke="black" stroke-width="2"/><rect x="8" y="8" width="4" height="18" fill="white" stroke="black" stroke-width="2"/><rect x="14" y="8" width="4" height="18" fill="white" stroke="black" stroke-width="2"/><rect x="20" y="8" width="4" height="18" fill="white" stroke="black" stroke-width="2"/>`
+        };
+
+
+        // =================================================================
+        // 2. FILESYSTEM CONFIGURATION
+        // =================================================================
+        const fileSystem = {
+            id: 'root', // Main Hard Drive
+            name: "Macintosh HD",
+            type: 'folder',
+            items: [
+                // --- Folders ---
+                {
+                    type: 'folder',
+                    id: 'folder-math',
+                    name: 'Math Stuff',
+                    icon: 'folder',
+                    items: [
+                        { name: "Fast Facts", url: "https://bfugitt.github.io/fastfacts/", icon: "calculator" },
+                        { name: "Math Cards", url: "https://bfugitt.github.io/mathcards/", icon: "book" },
+                        { name: "Long Division", url: "https://bfugitt.github.io/division/", icon: "calculator" },
+                        { name: "Multiplication", url: "https://bfugitt.github.io/multiplication/", icon: "calculator" },
+                        { name: "Logic", url: "https://bfugitt.github.io/logic/", icon: "logic" }
+                    ]
+                },
+                {
+                    type: 'folder',
+                    id: 'folder-music',
+                    name: 'Music',
+                    icon: 'folder',
+                    items: [
+                        { name: "WebSynth", url: "https://bfugitt.github.io/web-synth", icon: "music" },
+                        { name: "Midi Sequencer", url: "https://bfugitt.github.io/midiseq", icon: "music" },
+                        { name: "Songer", url: "https://bfugitt.github.io/songer/", icon: "music" },
+                        { name: "Guitar", url: "https://bfugitt.github.io/guitar/", icon: "guitar" }
+                    ]
+                },
+
+                {
+                    type: 'folder',
+                    id: 'history-music',
+                    name: 'History',
+                    icon: 'folder',
+                    items: [
+                        { name: "Royal Families", url: "https://bfugitt.github.io/learnit/?mod=royals.json", icon: "column" },
+                        { name: "States Map",    url: "https://bfugitt.github.io/states/",           icon: "map" },
+                        { name: "World Map",     url: "https://bfugitt.github.io/world/",            icon: "globe" },
+                        { name: "El Camino Real Game",    url: "https://bfugitt.github.io/elcaminoreal/",           icon: "map" }
+                        
+                    ]
+                },
+                
+
+
+                
+                // --- Loose Apps in Main Window ---
+
+                { name: "Vocab",     url: "https://bfugitt.github.io/macvocab/",         icon: "book" },
+                { name: "PixArt",     url: "https://bfugitt.github.io/pixart/",         icon: "paint" },
+                { name: "LearnIt",   url: "https://bfugitt.github.io/learnit/",          icon: "mac" },
+                { name: "MacType",   url: "https://bfugitt.github.io/mactype/",          icon: "keyboard" },
+                { name: "BibleType", url: "https://bfugitt.github.io/bibletype/",        icon: "book" },
+                { name: "MacLatin",  url: "https://bfugitt.github.io/maclatin/",         icon: "column" }
+            ]
+        };
+
+        // =================================================================
+        // 3. MENU CONFIGURATION
+        // =================================================================
+        
+        const menuConfig = {
+            "": [
+                { label: "About System 6", message: "Web App Launcher\n\nVersion 3.0\nCreated with Gemini." },
+                "---",
+                { label: "Control Panel", message: "Do you control the panel, or does the panel control you?" },
+                { label: "Chooser", message: "You are a very good chooser!" }
+            ],
+            "File": [
+                { label: "New Folder", message: "There are already enough folders.  You don't need any more." },
+                { label: "Open", message: "... close... open ... close..." },
+                { label: "Print", message: "Or cursive... either is fine" },
+                { label: "Close", message: "To close this desktop, please close your browser tab." },
+                "---",
+                { label: "Quit", message: "Don't stop! Never give up!" }
+            ],
+            "Edit": [
+                { label: "Undo", message: "There is no undo.  Only do, or do not." },
+                "---",
+                { label: "Cut", message: "Snip, snip, snip.." },
+                { label: "Copy", message: "Always do your own work." },
+                { label: "Paste", message: "Don't eat paste." },
+                { label: "Clear", message: "Yes, now I see... It is all perfectly clear now." }
+            ],
+            "Special": [
+                { label: "Clean Up Window", message: "Windex and paper towels work well." },
+                { label: "Empty Trash", message: "Your mother appreciates you taking the trash out." },
+                { label: "Erase Disk", message: "That is a very bad idea..." },
+                "---",
+                { label: "Restart", message: "Good morning!" },
+                { label: "Shutdown", message: "Do you need a nap?" },
+                { label: "Help", message: "God helps those who help themselves." }
+            ]
+        };
+
+
+        // =================================================================
+        // 4. WINDOW MANAGER LOGIC
+        // =================================================================
+        
+        let zIndexCounter = 100;
+        const windowOffsetStep = 20; // Cascade offset
+        let windowSpawnCount = 0;
+        const screenContainer = document.getElementById('virtual-screen');
+
+        // --- Create or Bring to Front a Window ---
+        function openWindow(folderData) {
+            const existingWin = document.getElementById(`win-${folderData.id}`);
             
-            <div class="control-group">
-                <select id="grid-size" class="btn" onchange="changeGridSize()">
-                    <option value="8">8x8</option>
-                    <option value="16">16x16</option>
-                    <option value="32">32x32</option>
-                </select>
-                <button class="btn" onclick="startOver()" style="color:red; font-weight:bold;">Reset</button>
-            </div>
-        </div>
-
-        <!-- Tools Row 2 (Files) -->
-        <div class="toolbar" style="border-top:none; padding-top:0;">
-            <div class="control-group" style="flex-grow: 1; justify-content: center;">
-                <span class="control-group-title">FILE:</span>
-                <button class="btn" onclick="saveProject()">Save</button>
-                <button class="btn" onclick="document.getElementById('file-input').click()">Load</button>
-                <button class="btn" onclick="exportGIF()" title="Download GIF">EXPORT GIF</button>
-            </div>
-        </div>
-        
-        <!-- Hidden File Input -->
-        <input type="file" id="file-input" style="display:none" accept=".json" onchange="loadProject(event)">
-
-        <!-- Main Canvas -->
-        <div class="canvas-container">
-            <canvas id="editorCanvas" width="320" height="320"></canvas>
-        </div>
-
-        <!-- Animation Controls -->
-        <div class="toolbar" style="border-bottom: none; border-top: 1px dashed var(--sys-black); padding-top: 10px;">
-            <button class="btn" id="save-cel-btn" onclick="saveCelAndNext()" style="flex-grow: 2; font-weight: bold;">+ Save Cel</button>
-            <button class="btn" onclick="duplicateFrame()" title="Duplicate Current Frame" style="flex-grow: 1;">Dup</button>
-            <button class="btn" onclick="deleteFrame()" style="color:red; font-weight:bold;">X</button>
-        </div>
-
-        <!-- Playback -->
-        <div class="playback-controls">
-            <button class="btn" id="play-btn" onclick="togglePlay()">&#9658; PLAY</button>
-            <div style="display:flex; align-items:center; gap:5px;">
-                <label>Speed:</label>
-                <input type="range" id="speed-range" min="1" max="20" value="8" oninput="updateSpeed()">
-            </div>
-        </div>
-
-        <!-- Timeline -->
-        <div class="film-strip" id="film-strip">
-            <!-- Thumbnails go here -->
-        </div>
-        <div style="text-align:center; font-size: 0.8rem; margin-top: 2px;">
-            Frame: <span id="frame-indicator">1/1</span>
-        </div>
-    </div>
-</div>
-
-<script>
-    // --- Configuration ---
-    let gridSize = 8;
-    const canvasSize = 320; // Display size in pixels
-    let pixelSize = canvasSize / gridSize;
-    
-    // --- State ---
-    let frames = []; // Array of 2D arrays (0=empty, 1=black)
-    let currentFrameIndex = 0;
-    let isPlaying = false;
-    let playInterval = null;
-    let fps = 8;
-    let tool = 'pen'; // 'pen' or 'eraser'
-    let isDrawing = false;
-    let showOnionSkin = true;
-
-    // --- DOM Elements ---
-    const canvas = document.getElementById('editorCanvas');
-    const ctx = canvas.getContext('2d');
-    const filmStrip = document.getElementById('film-strip');
-    const frameIndicator = document.getElementById('frame-indicator');
-    const playBtn = document.getElementById('play-btn');
-
-    // --- Initialization ---
-    function init() {
-        // Initialize with one empty frame
-        addNewFrame();
-        render();
-        updateUI();
-    }
-
-    // --- Grid Logic ---
-
-    function createEmptyGrid(size) {
-        let grid = [];
-        for (let y = 0; y < size; y++) {
-            let row = [];
-            for (let x = 0; x < size; x++) {
-                row.push(0);
-            }
-            grid.push(row);
-        }
-        return grid;
-    }
-
-    function startOver() {
-        if (frames.length > 1 || hasContent(frames[0])) {
-            if (!confirm("Start over? This will delete your entire animation.")) return;
-        }
-        forceReset();
-    }
-
-    function forceReset() {
-        if (isPlaying) stopAnimation();
-        frames = [];
-        currentFrameIndex = 0;
-        filmStrip.innerHTML = '';
-        
-        // Ensure grid settings match current dropdown
-        const select = document.getElementById('grid-size');
-        gridSize = parseInt(select.value);
-        pixelSize = canvasSize / gridSize;
-
-        addNewFrame();
-        render();
-        updateUI();
-    }
-
-    function changeGridSize() {
-        const select = document.getElementById('grid-size');
-        const newSize = parseInt(select.value);
-        
-        if (frames.length > 1 || hasContent(frames[0])) {
-            if(!confirm("Changing grid size will reset your animation. Continue?")) {
-                select.value = gridSize;
+            if (existingWin) {
+                // Already open, bring to front
+                bringToFront(existingWin);
                 return;
             }
-        }
-        
-        gridSize = newSize;
-        pixelSize = canvasSize / gridSize;
-        forceReset();
-    }
 
-    function hasContent(grid) {
-        return grid.some(row => row.some(cell => cell === 1));
-    }
+            // Create new Window
+            const win = document.createElement('div');
+            win.className = 'window active';
+            win.id = `win-${folderData.id}`;
+            win.style.zIndex = ++zIndexCounter;
 
-    // --- File System (Save/Load/Export) ---
-
-    function saveProject() {
-        const projectData = {
-            gridSize: gridSize,
-            fps: fps,
-            frames: frames
-        };
-        const blob = new Blob([JSON.stringify(projectData)], {type: "application/json"});
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = "pixel-anim-project.json";
-        a.click();
-        URL.revokeObjectURL(url);
-    }
-
-    function loadProject(event) {
-        const file = event.target.files[0];
-        if (!file) return;
-
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            try {
-                const data = JSON.parse(e.target.result);
-                
-                // Validate Basic Structure
-                if (!data.frames || !Array.isArray(data.frames)) {
-                    alert("Invalid project file.");
-                    return;
-                }
-
-                if (isPlaying) stopAnimation();
-
-                // Apply settings
-                if (data.gridSize) {
-                    gridSize = data.gridSize;
-                    document.getElementById('grid-size').value = gridSize;
-                    pixelSize = canvasSize / gridSize;
-                }
-                if (data.fps) {
-                    fps = data.fps;
-                    document.getElementById('speed-range').value = fps;
-                }
-
-                // Load frames
-                frames = data.frames;
-                currentFrameIndex = 0;
-
-                // Rebuild UI
-                filmStrip.innerHTML = '';
-                refreshThumbnails();
-                render();
-                updateUI();
-                
-                // Clear input so same file can be selected again
-                event.target.value = '';
-
-            } catch (err) {
-                console.error(err);
-                alert("Error loading file.");
+            // Positioning Logic
+            const isMobile = window.innerWidth < 600;
+            if (isMobile) {
+                win.style.width = '90%';
+                win.style.left = '5%';
+                win.style.top = (40 + (windowSpawnCount * 10)) + 'px'; 
+            } else {
+                win.style.width = '500px';
+                win.style.left = (40 + (windowSpawnCount * windowOffsetStep)) + 'px';
+                win.style.top = (60 + (windowSpawnCount * windowOffsetStep)) + 'px';
             }
-        };
-        reader.readAsText(file);
-    }
+            windowSpawnCount++;
 
-    function exportGIF() {
-        // Robust Library Check
-        if (typeof gifenc === 'undefined') {
-            // Attempt to load from backup source if main source failed
-            const script = document.createElement('script');
-            script.src = 'https://unpkg.com/gifenc@1.0.3/dist/gifenc.js';
-            
-            script.onload = () => {
-                alert("GIF Library loaded successfully! Please click 'Export GIF' again.");
-            };
-            
-            script.onerror = () => {
-                 alert("Unable to load GIF library. Your network firewall seems to be blocking both 'jsdelivr' and 'unpkg'.\n\nTry using a mobile hotspot or home network.");
-            };
-            
-            document.head.appendChild(script);
-            
-            alert("GIF library was missing (likely blocked). Attempting to reload from backup source...\n\nWait 3 seconds, then click 'Export GIF' again.");
-            return;
+            // Window HTML Structure
+            win.innerHTML = `
+                <div class="title-bar">
+                    <div class="close-box" onclick="closeWindow('${folderData.id}')"></div>
+                    <span class="window-title">${folderData.name}</span>
+                    <div class="zoom-box"><div class="zoom-inner"></div></div>
+                </div>
+                <div class="window-info-bar">
+                    <span>${folderData.items.length} items</span>
+                    <span>10 MB available</span>
+                </div>
+                <div class="window-content"></div>
+            `;
+
+            // Inject into screen, not body
+            screenContainer.appendChild(win);
+
+            // Populate Items
+            const contentArea = win.querySelector('.window-content');
+            renderItems(contentArea, folderData.items);
+
+            // Add Click listener for Z-Index
+            win.addEventListener('mousedown', () => bringToFront(win));
+            win.addEventListener('touchstart', () => bringToFront(win), {passive: true});
         }
 
-        const btn = document.querySelector('button[onclick="exportGIF()"]');
-        const originalText = btn.innerText;
-        btn.innerText = "Generating...";
-        btn.disabled = true;
-
-        setTimeout(() => {
-            try {
-                const { GIFEncoder } = gifenc;
-                const gif = new GIFEncoder();
+        // --- Render Items inside a Window ---
+        function renderItems(container, items) {
+            items.forEach(item => {
+                const iconSvg = iconLibrary[item.icon] || iconLibrary['default'];
+                const iconDiv = document.createElement('div');
+                iconDiv.className = 'window-icon';
                 
-                // We want the output to be big enough to see, so we scale it.
-                // 320x320 is the canvas size. Let's use that.
-                // Calculate scale factor
-                const scale = Math.floor(canvasSize / gridSize);
-                const width = canvasSize;
-                const height = canvasSize;
+                // Click Handler
+                iconDiv.onclick = (e) => {
+                    e.stopPropagation(); 
+                    if (item.type === 'folder') {
+                        openWindow(item);
+                    } else {
+                        // Standard new tab
+                        window.open(item.url, '_blank');
+                    }
+                };
 
-                // Palette: 0=White, 1=Black
-                const palette = [
-                    [255, 255, 255],
-                    [0, 0, 0]
-                ];
+                iconDiv.innerHTML = `
+                    <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        ${iconSvg}
+                        <rect x="0" y="0" width="32" height="32" fill="transparent" />
+                    </svg>
+                    <span class="icon-label">${item.name}</span>
+                `;
+                container.appendChild(iconDiv);
+            });
+        }
 
-                frames.forEach(frame => {
-                    // Create indexed color array for this frame
-                    const data = new Uint8Array(width * height);
+        function closeWindow(id) {
+            const win = document.getElementById(`win-${id}`);
+            if (win) {
+                win.remove();
+            }
+        }
+
+        function bringToFront(win) {
+            win.style.zIndex = ++zIndexCounter;
+            document.querySelectorAll('.window').forEach(w => w.classList.remove('active'));
+            win.classList.add('active');
+        }
+
+        // --- Drag Logic ---
+        let dragTarget = null;
+        let dragInitialX, dragInitialY;
+        let dragOffsetX = 0, dragOffsetY = 0;
+
+        // Note: Event listeners are attached to document, but we process based on dragTarget
+        document.addEventListener("mousedown", dragStart);
+        document.addEventListener("touchstart", dragStart, {passive: false});
+        
+        document.addEventListener("mousemove", dragMove);
+        document.addEventListener("touchmove", dragMove, {passive: false});
+        
+        document.addEventListener("mouseup", dragEnd);
+        document.addEventListener("touchend", dragEnd);
+
+        function dragStart(e) {
+            const titleBar = e.target.closest('.title-bar');
+            if (e.target.closest('.close-box')) return;
+
+            if (titleBar) {
+                const win = titleBar.closest('.window');
+                if (win) {
+                    if (e.type === 'touchstart') e.preventDefault();
                     
-                    for (let y = 0; y < gridSize; y++) {
-                        for (let x = 0; x < gridSize; x++) {
-                            const colorIndex = frame[y][x] === 1 ? 1 : 0;
-                            
-                            // Fill the scaled block
-                            // The canvasSize is 320. If gridSize is 8, scale is 40.
-                            const startY = y * scale;
-                            const startX = x * scale;
-                            
-                            for (let dy = 0; dy < scale; dy++) {
-                                for (let dx = 0; dx < scale; dx++) {
-                                    const py = startY + dy;
-                                    const px = startX + dx;
-                                    if (py < height && px < width) {
-                                        data[py * width + px] = colorIndex;
-                                    }
-                                }
-                            }
+                    dragTarget = win;
+                    bringToFront(win);
+
+                    const rect = win.getBoundingClientRect();
+                    
+                    let clientX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
+                    let clientY = e.type.includes('touch') ? e.touches[0].clientY : e.clientY;
+
+                    // Dragging works via offsets relative to viewport, 
+                    // but we need to calculate local offsets if our container was scrolling. 
+                    // Since container is fixed/overflow hidden, client coords are fine,
+                    // but we must subtract the container's top/left offset if we want perfect local positioning.
+                    // For now, simpler viewport based delta is robust enough for absolute pos.
+                    
+                    dragOffsetX = clientX - rect.left;
+                    dragOffsetY = clientY - rect.top;
+                }
+            }
+        }
+
+        function dragMove(e) {
+            if (!dragTarget) return;
+            e.preventDefault();
+
+            let clientX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
+            let clientY = e.type.includes('touch') ? e.touches[0].clientY : e.clientY;
+
+            // We need to account for the container's offset because 'position: absolute' 
+            // is relative to the #virtual-screen, not the body/viewport.
+            const containerRect = screenContainer.getBoundingClientRect();
+            
+            // Calculate Position relative to container
+            let newLeft = clientX - containerRect.left - dragOffsetX;
+            let newTop = clientY - containerRect.top - dragOffsetY;
+
+            dragTarget.style.left = newLeft + 'px';
+            dragTarget.style.top = newTop + 'px';
+        }
+
+        function dragEnd() {
+            dragTarget = null;
+        }
+
+
+        // =================================================================
+        // 5. ALERT & MENU LOGIC
+        // =================================================================
+        
+        const alertModal = document.getElementById('systemAlert');
+        const alertMessageEl = document.getElementById('alertMessage');
+        const menubar = document.getElementById('menubar');
+        let openMenu = null;
+
+        function showAlert(message) {
+            alertMessageEl.textContent = message;
+            alertModal.style.display = 'flex';
+        }
+
+        window.closeAlert = function() {
+            alertModal.style.display = 'none';
+        }
+
+        function renderMenu() {
+            menubar.innerHTML = '';
+            Object.keys(menuConfig).forEach(title => {
+                const menuTitleDiv = document.createElement('div');
+                menuTitleDiv.className = 'menu-title';
+                if(title === "") menuTitleDiv.classList.add('apple-logo');
+                menuTitleDiv.textContent = title;
+                
+                const dropdownDiv = document.createElement('div');
+                dropdownDiv.className = 'dropdown-menu';
+                
+                menuConfig[title].forEach(itemData => {
+                    let label, message;
+                    if (typeof itemData === 'string') {
+                        if (itemData === "---") {
+                            const sep = document.createElement('div');
+                            sep.className = 'dropdown-separator';
+                            dropdownDiv.appendChild(sep);
+                            return;
                         }
+                        label = itemData;
+                        message = "Function not implemented.";
+                    } else {
+                        label = itemData.label;
+                        message = itemData.message || "Function not implemented.";
                     }
 
-                    gif.writeFrame(data, width, height, {
-                        palette: palette,
-                        delay: 1000 / fps, // FPS from slider
-                        repeat: 0, // Loop forever
-                        transparent: false
-                    });
+                    const itemDiv = document.createElement('div');
+                    itemDiv.className = 'dropdown-item';
+                    itemDiv.textContent = label;
+                    itemDiv.onclick = (e) => {
+                        e.stopPropagation();
+                        closeAllMenus();
+                        showAlert(message);
+                    };
+                    dropdownDiv.appendChild(itemDiv);
                 });
 
-                gif.finish();
-                const buffer = gif.bytes();
-                
-                // Trigger Download
-                const blob = new Blob([buffer], { type: 'image/gif' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = 'pixel-animation.gif';
-                a.click();
-                URL.revokeObjectURL(url);
-                
-            } catch (e) {
-                console.error(e);
-                alert("Error generating GIF.");
-            } finally {
-                btn.innerText = originalText;
-                btn.disabled = false;
-            }
-        }, 50); // Small timeout to allow UI to update
-    }
-
-    // --- Frame Management ---
-
-    function addNewFrame(copyPrevious = false) {
-        let newGrid;
-        if (copyPrevious && frames.length > 0) {
-            // Deep copy the previous frame
-            newGrid = JSON.parse(JSON.stringify(frames[frames.length - 1]));
-        } else {
-            newGrid = createEmptyGrid(gridSize);
-        }
-        frames.push(newGrid);
-        currentFrameIndex = frames.length - 1;
-        addThumbnail(currentFrameIndex);
-        scrollToEnd();
-    }
-
-    function duplicateFrame() {
-        if (frames.length === 0) return;
-
-        const newGrid = JSON.parse(JSON.stringify(frames[currentFrameIndex]));
-        frames.splice(currentFrameIndex + 1, 0, newGrid);
-        currentFrameIndex++;
-        
-        refreshThumbnails();
-        render();
-        updateUI();
-        
-        setTimeout(() => {
-            const thumb = filmStrip.children[currentFrameIndex];
-            if (thumb) thumb.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-        }, 50);
-    }
-
-    function saveCelAndNext() {
-        if (currentFrameIndex < frames.length - 1) {
-            currentFrameIndex++;
-        } else {
-            addNewFrame(false);
-        }
-        render();
-        updateUI();
-    }
-
-    function deleteFrame() {
-        if (frames.length <= 1) {
-            clearFrame();
-            return;
-        }
-        
-        if (confirm("Delete this frame?")) {
-            frames.splice(currentFrameIndex, 1);
-            if (currentFrameIndex >= frames.length) {
-                currentFrameIndex = frames.length - 1;
-            }
-            refreshThumbnails();
-            render();
-            updateUI();
-        }
-    }
-
-    function clearFrame() {
-        frames[currentFrameIndex] = createEmptyGrid(gridSize);
-        render();
-        updateThumbnail(currentFrameIndex);
-    }
-
-    function selectFrame(index) {
-        if (isPlaying) stopAnimation();
-        currentFrameIndex = index;
-        render();
-        updateUI();
-    }
-
-    // --- Drawing Engine ---
-
-    function drawGridLines() {
-        ctx.strokeStyle = '#e0e0e0';
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        for (let i = 0; i <= gridSize; i++) {
-            ctx.moveTo(i * pixelSize, 0);
-            ctx.lineTo(i * pixelSize, canvasSize);
-            ctx.moveTo(0, i * pixelSize);
-            ctx.lineTo(canvasSize, i * pixelSize);
-        }
-        ctx.stroke();
-    }
-
-    function drawPixel(x, y, color) {
-        ctx.fillStyle = color;
-        const gap = 0; 
-        ctx.fillRect(x * pixelSize + gap, y * pixelSize + gap, pixelSize - gap*2, pixelSize - gap*2);
-    }
-
-    function render() {
-        ctx.clearRect(0, 0, canvasSize, canvasSize);
-        drawGridLines();
-
-        if (!isPlaying && showOnionSkin && currentFrameIndex > 0) {
-            const prevFrame = frames[currentFrameIndex - 1];
-            for (let y = 0; y < gridSize; y++) {
-                for (let x = 0; x < gridSize; x++) {
-                    if (prevFrame[y][x] === 1) {
-                        drawPixel(x, y, '#ccc');
+                menuTitleDiv.onclick = (e) => {
+                    e.stopPropagation();
+                    if (openMenu === dropdownDiv) {
+                        closeAllMenus();
+                    } else {
+                        closeAllMenus();
+                        dropdownDiv.classList.add('visible');
+                        menuTitleDiv.classList.add('active');
+                        openMenu = dropdownDiv;
                     }
-                }
-            }
+                };
+                
+                menuTitleDiv.appendChild(dropdownDiv);
+                menubar.appendChild(menuTitleDiv);
+            });
         }
 
-        const currentGrid = frames[currentFrameIndex];
-        for (let y = 0; y < gridSize; y++) {
-            for (let x = 0; x < gridSize; x++) {
-                if (currentGrid[y][x] === 1) {
-                    drawPixel(x, y, '#000');
-                }
-            }
+        function closeAllMenus() {
+            document.querySelectorAll('.dropdown-menu').forEach(el => el.classList.remove('visible'));
+            document.querySelectorAll('.menu-title').forEach(el => el.classList.remove('active'));
+            openMenu = null;
         }
-        updateThumbnail(currentFrameIndex);
-    }
 
-    // --- Interaction ---
+        document.body.addEventListener('click', closeAllMenus);
 
-    function getGridCoords(e) {
-        const rect = canvas.getBoundingClientRect();
-        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-        const x = Math.floor((clientX - rect.left) / (rect.width / gridSize));
-        const y = Math.floor((clientY - rect.top) / (rect.height / gridSize));
-        return { x, y };
-    }
 
-    function handlePaint(e) {
-        if (isPlaying) return;
-        const { x, y } = getGridCoords(e);
-        if (x >= 0 && x < gridSize && y >= 0 && y < gridSize) {
-            const val = tool === 'pen' ? 1 : 0;
-            if (frames[currentFrameIndex][y][x] !== val) {
-                frames[currentFrameIndex][y][x] = val;
-                render();
-            }
-        }
-        e.preventDefault();
-    }
+        // =================================================================
+        // INITIALIZATION
+        // =================================================================
+        renderMenu();
+        openWindow(fileSystem);
 
-    canvas.addEventListener('mousedown', (e) => { isDrawing = true; handlePaint(e); });
-    canvas.addEventListener('mousemove', (e) => { if (isDrawing) handlePaint(e); });
-    window.addEventListener('mouseup', () => { isDrawing = false; });
-    canvas.addEventListener('touchstart', (e) => { isDrawing = true; handlePaint(e); }, {passive: false});
-    canvas.addEventListener('touchmove', (e) => { if (isDrawing) handlePaint(e); }, {passive: false});
-    canvas.addEventListener('touchend', () => { isDrawing = false; });
-
-    // --- Toolbar ---
-
-    function setTool(t) {
-        tool = t;
-        document.getElementById('tool-pen').classList.toggle('active', t === 'pen');
-        document.getElementById('tool-eraser').classList.toggle('active', t === 'eraser');
-    }
-
-    // --- Timeline UI ---
-
-    function addThumbnail(index) {
-        const thumb = document.createElement('div');
-        thumb.className = 'film-frame';
-        thumb.onclick = () => selectFrame(index);
-        
-        const thumbCanvas = document.createElement('canvas');
-        thumbCanvas.width = gridSize;
-        thumbCanvas.height = gridSize;
-        thumb.appendChild(thumbCanvas);
-        
-        const num = document.createElement('div');
-        num.className = 'frame-number';
-        num.innerText = index + 1;
-        thumb.appendChild(num);
-
-        filmStrip.appendChild(thumb);
-    }
-
-    function updateThumbnail(index) {
-        if (index < 0 || index >= filmStrip.children.length) return;
-        const thumb = filmStrip.children[index];
-        const thumbCanvas = thumb.querySelector('canvas');
-        const tCtx = thumbCanvas.getContext('2d');
-        const grid = frames[index];
-        tCtx.clearRect(0, 0, gridSize, gridSize);
-        tCtx.fillStyle = '#000';
-        for (let y = 0; y < gridSize; y++) {
-            for (let x = 0; x < gridSize; x++) {
-                if (grid[y][x] === 1) tCtx.fillRect(x, y, 1, 1);
-            }
-        }
-    }
-
-    function refreshThumbnails() {
-        filmStrip.innerHTML = '';
-        frames.forEach((_, idx) => addThumbnail(idx));
-        frames.forEach((_, idx) => updateThumbnail(idx));
-    }
-
-    function updateUI() {
-        frameIndicator.innerText = `${currentFrameIndex + 1}/${frames.length}`;
-        Array.from(filmStrip.children).forEach((child, idx) => {
-            if (idx === currentFrameIndex) child.classList.add('selected');
-            else child.classList.remove('selected');
-        });
-        const saveBtn = document.getElementById('save-cel-btn');
-        if (currentFrameIndex === frames.length - 1) {
-            saveBtn.innerText = "+ Save Cel";
-        } else {
-            saveBtn.innerText = "Next Frame >";
-        }
-    }
-
-    function scrollToEnd() {
-        setTimeout(() => { filmStrip.scrollLeft = filmStrip.scrollWidth; }, 50);
-    }
-
-    // --- Playback ---
-
-    function togglePlay() {
-        if (isPlaying) stopAnimation();
-        else startAnimation();
-    }
-
-    function startAnimation() {
-        if (frames.length < 1) return;
-        isPlaying = true;
-        playBtn.innerHTML = '&#9632; STOP';
-        document.getElementById('save-cel-btn').disabled = true;
-        canvas.style.cursor = 'default';
-
-        playInterval = setInterval(() => {
-            currentFrameIndex = (currentFrameIndex + 1) % frames.length;
-            render();
-            updateUI(); 
-        }, 1000 / fps);
-    }
-
-    function stopAnimation() {
-        isPlaying = false;
-        clearInterval(playInterval);
-        playBtn.innerHTML = '&#9658; PLAY';
-        document.getElementById('save-cel-btn').disabled = false;
-        canvas.style.cursor = 'crosshair';
-        render();
-    }
-
-    function updateSpeed() {
-        const slider = document.getElementById('speed-range');
-        fps = parseInt(slider.value);
-        if (isPlaying) {
-            stopAnimation();
-            startAnimation();
-        }
-    }
-
-    // --- Start ---
-    init();
-
-</script>
-
+    </script>
 </body>
 </html>
